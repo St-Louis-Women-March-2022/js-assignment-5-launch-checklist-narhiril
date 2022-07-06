@@ -1,10 +1,8 @@
 // Write your JavaScript code here!
 
-//const { formSubmission } = require("./scriptHelper");
-
 window.addEventListener("load", function() {
 
-    let launchChecklist = {
+    const launchChecklist = {
         pilot: {name: '', isReady: false},
         copilot: {name: '', isReady: false},
         fuelLevel: {value: '', isReady: false},

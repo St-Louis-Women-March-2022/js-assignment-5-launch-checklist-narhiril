@@ -3,6 +3,7 @@ require('isomorphic-fetch');
 
 
 function addDestinationInfo(document, name, diameter, star, distance, moons, imageUrl) {
+
    // Here is the HTML formatting for our mission target div.
    /*
                 <h2>Mission Destination</h2>
@@ -15,6 +16,21 @@ function addDestinationInfo(document, name, diameter, star, distance, moons, ima
                 </ol>
                 <img src="">
    */
+
+    const target = document.getElementById('missionTarget');
+    const html = ['',
+        `<h2>Mission Destination</h2>`,
+        `<ol>`,
+        `<li>Name: ${name}</li>`,
+        `<li>Diameter: ${diameter}</li>`,
+        `<li>Star: ${star}</li>`,
+        `<li>Distance from Earth: ${distance}</li>`,
+        `<li>Number of Moons: ${moons}</li>`,
+        `</ol>`,
+        `<img src="${imageUrl}">`
+    ].join('\n');
+    target.innerHTML = html;
+
 }
 
 function validateInput(testInput) {
@@ -27,11 +43,29 @@ function validateInput(testInput) {
 
 function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
     const threshold = {fuel: 10000, cargo: 10000};
+    const formEntries = [pilot, copilot, fuelLevel, cargoLevel];
+
     const faultyItems = document.getElementById('faultyItems');
     const pilotElement = document.getElementById('pilotStatus');
     const copilotElement = document.getElementById('copilotStatus');
     const fuelElement = document.getElementById('fuelStatus');
     const cargoElement = document.getElementById('cargoStatus');
+
+    function allChecksPassed(checklist){
+        for (const item in checklist){
+            if (!checklist[item].isReady){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    for (const entry of formEntries){
+        if (validateInput(entry) === "Empty"){
+            alert("All fields are required!");
+            break;
+        }
+    }
 
     if (validateInput(pilot) === "Not a Number"){
         list.pilot.name = pilot;
@@ -81,16 +115,7 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         cargoElement.innerHTML = "Cargo information required for launch";
     }
 
-    const ready = (checklist) => {
-        for (const item in checklist){
-            if (!checklist[item].isReady){
-                return false;
-            }
-        }
-        return true;
-    }
-
-    if(ready(list)) {
+    if (allChecksPassed(list)){
         faultyItems.style.visibility = "hidden";
         launchStatus.style.color = "green";
         launchStatus.innerHTML = "Shuttle is ready for launch";
