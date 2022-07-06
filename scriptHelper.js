@@ -21,30 +21,34 @@ function validateInput(testInput) {
     if (testInput === ''){
         return "Empty";
     } else {
-        const isNonNumeric = /[^\-\.0-9e]|e(?=.*e)|\.(?=.*\.)|^e/i; //should catch everything that isNaN doesn't
-        return ((isNonNumeric.test(testInput) || isNaN(testInput) ? "Not a Number" : "Is a Number"));
+        return ((isNaN(Number(testInput))) ? "Not a Number" : "Is a Number");
     }
 }
 
 function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
     const threshold = {fuel: 10000, cargo: 10000};
+    const faultyItems = document.getElementById('faultyItems');
+    const pilotElement = document.getElementById('pilotStatus');
+    const copilotElement = document.getElementById('copilotStatus');
+    const fuelElement = document.getElementById('fuelStatus');
+    const cargoElement = document.getElementById('cargoStatus');
 
-    if (validateInput(pilot) === "Empty"){
-        list.pilot.isReady = false;
-        //update page to show invalid name
-    } else {
+    if (validateInput(pilot) === "Not a Number"){
         list.pilot.name = pilot;
         list.pilot.isReady = true;
-        //remove invalid name prompt from page
+        pilotElement.innerHTML = `${pilot} (Pilot) Ready`;
+    } else {
+        list.pilot.isReady = false;
+        pilotElement.innerHTML = "Pilot Not Ready";
     }
 
-    if (validateInput(copilot) === "Empty"){
-        list.copilot.isReady = false;
-        //update page to show invalid name
-    } else {
-        list.copilot.name = pilot;
+    if (validateInput(copilot) === "Not a Number"){
+        list.copilot.name = copilot;
         list.copilot.isReady = true;
-        //remove invalid name prompt from page
+        copilotElement.innerHTML = `${copilot} (Co-pilot) Ready`;
+    } else {
+        list.copilot.isReady = false;
+        copilotElement.innerHTML = "Co-pilot Not Ready";
     }
 
     if (validateInput(fuelLevel) === "Is a Number"){
@@ -52,14 +56,14 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         list.fuelLevel.value = fuelLevel;
         if (fuelLevel >= threshold.fuel){
             list.fuelLevel.isReady = true;
-            //remove insufficient fuel prompt from page
+            fuelElement.innerHTML = "Fuel level high enough for launch";
         } else {
             list.fuelLevel.isReady = false;
-            //update page to show insufficient fuel
+            fuelElement.innerHTML = "Insufficient fuel for launch";
         }
     } else {
         list.fuelLevel.isReady = false;
-        //update page to show invalid fuel entry
+        fuelElement.innerHTML = "Fuel information required for launch";
     }
     
     if (validateInput(cargoLevel) === "Is a Number"){
@@ -67,23 +71,34 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         list.cargoLevel.value = cargoLevel;
         if (cargoLevel <= threshold.cargo){
             list.cargoLevel.isReady = true;
-            //remove too much cargo prompt from page
+            cargoElement.innerHTML = "Cargo mass low enough for launch";
         } else {
             list.cargoLevel.isReady = false;
-            //update page to show too much cargo
+            cargoElement.innerHTML = "Cargo mass too high for launch";
         }
     } else {
         list.cargoLevel.isReady = false;
-        //update page to show invalid cargo entry
+        cargoElement.innerHTML = "Cargo information required for launch";
     }
 
-    for (const item of list) {
-        if (!item.isReady) {
-            return false;
+    const ready = (checklist) => {
+        for (const item in checklist){
+            if (!checklist[item].isReady){
+                return false;
+            }
         }
+        return true;
     }
-    return true;
 
+    if(ready(list)) {
+        faultyItems.style.visibility = "hidden";
+        launchStatus.style.color = "green";
+        launchStatus.innerHTML = "Shuttle is ready for launch";
+    } else {
+        faultyItems.style.visibility = "visible";
+        launchStatus.style.color = "red";
+        launchStatus.innerHTML = "Shuttle not ready for launch";
+    }
 }
 
 
