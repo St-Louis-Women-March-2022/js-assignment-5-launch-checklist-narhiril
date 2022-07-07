@@ -42,30 +42,39 @@ function validateInput(testInput) {
 }
 
 function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
-    const threshold = {fuel: 10000, cargo: 10000};
-    const formEntries = [pilot, copilot, fuelLevel, cargoLevel];
 
-    const faultyItems = document.getElementById('faultyItems');
-    const pilotElement = document.getElementById('pilotStatus');
-    const copilotElement = document.getElementById('copilotStatus');
-    const fuelElement = document.getElementById('fuelStatus');
-    const cargoElement = document.getElementById('cargoStatus');
+    const formEntries = [pilot, copilot, fuelLevel, cargoLevel];
+    for (const entry of formEntries){
+        if (validateInput(entry) === "Empty"){
+            alert("All fields are required!");
+            break;
+        }
+    }
 
     class InputStrings {
-        constructor(name, expected, onSuccess, onFail, onOutOfBounds = ''){
-            this.name = name;
+        constructor(keyName, expected, onSuccess, onFail, onOutOfBounds = '', compareType = 'none'){
+            this.keyName = keyName;
             this.expected = expected;
             this.onSuccess = onSuccess;
             this.onFail = onFail;
             this.onOutOfBounds = onOutOfBounds;
+            this.compareType = compareType;
         }
     }
 
     const pilotStrings = new InputStrings("pilot", "Not a Number", `${pilot} (Pilot) Ready`, "Pilot Not Ready");
     const copilotStrings = new InputStrings("copilot", "Not a Number", `${copilot} (Co-pilot) Ready`, "Co-pilot Not Ready");
-    const fuelStrings = new InputStrings("fuelLevel", "Is a Number", "Fuel level high enough for launch", "Fuel information required for launch", "Insufficient fuel for launch");
-    const cargoStrings = new InputStrings("cargoLevel", "Is a Number", "Cargo mass low enough for launch", "Cargo information required for launch", "Cargo mass too high for launch");
+    const fuelStrings = new InputStrings("fuelLevel", "Is a Number", "Fuel level high enough for launch", "Fuel information required for launch", "Insufficient fuel for launch", ">=");
+    const cargoStrings = new InputStrings("cargoLevel", "Is a Number", "Cargo mass low enough for launch", "Cargo information required for launch", "Cargo mass too high for launch", "<=");
 
+    const threshold = {fuel: 10000, cargo: 10000};
+
+    const launchStatus = document.getElementById('launchStatus');
+    const faultyItems = document.getElementById('faultyItems');
+    const pilotElement = document.getElementById('pilotStatus');
+    const copilotElement = document.getElementById('copilotStatus');
+    const fuelElement = document.getElementById('fuelStatus');
+    const cargoElement = document.getElementById('cargoStatus');
 
     function allChecksPassed(checklist){
         for (const item in checklist){
@@ -76,16 +85,17 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         return true;
     }
 
-    function doChecks(inputParam, paramString, element, typeExpected, onSuccess, onFail, onOutOfBounds='', compareType='>=', compareValue=null){
+    function doChecks(inputParam, stringObj, element, compareValue = null){
+        const {keyName, expected, onSuccess, onFail, onOutOfBounds, compareType} = stringObj;
         const inputType = validateInput(inputParam);
-        switch(typeExpected){
+        switch (expected){
             case "Not a Number":
                 if (inputType === "Not a Number"){
-                    list[paramString].name = inputParam;
-                    list[paramString].isReady = true;
+                    list[keyName].name = inputParam;
+                    list[keyName].isReady = true;
                     element.innerHTML = onSuccess;
                 } else {
-                    list[paramString].isReady = false;
+                    list[keyName].isReady = false;
                     element.innerHTML = onFail;
                 }
                 break;
@@ -96,37 +106,33 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
                     ">": (a,b) => {return a > b;},
                     "<": (a,b) => {return a < b;},
                     "===": (a,b) => {return a === b;},
-                    "!==": (a,b) => {return a !== b;}
+                    "!==": (a,b) => {return a !== b;},
+                    "none": () => {throw Error('formSubmission: Invalid compareType');}
                 }
                 if (inputType === "Is a Number"){
                     const num = parseFloat(inputParam);
-                    list[paramString].value = num;
+                    list[keyName].value = num;
                     if(operators[compareType](num, compareValue)){
-                        list[paramString].isReady = true;
+                        list[keyName].isReady = true;
                         element.innerHTML = onSuccess;
                     } else {
-                        list[paramString].isReady = false;
+                        list[keyName].isReady = false;
                         element.innerHTML = onOutOfBounds;
                     }
                 } else {
-                    list[paramString].isReady = false;
+                    list[keyName].isReady = false;
                     element.innerHTML = onFail;
                 }
                 break;
+            default:
+                throw Error('formSubmission: Invalid value for stringObj.expected');
         }
     }
 
-    for (const entry of formEntries){
-        if (validateInput(entry) === "Empty"){
-            alert("All fields are required!");
-            break;
-        }
-    }
-
-    doChecks(pilot, pilotStrings.name, pilotElement, pilotStrings.expected, pilotStrings.onSuccess, pilotStrings.onFail);
-    doChecks(copilot, copilotStrings.name, copilotElement, copilotStrings.expected, copilotStrings.onSuccess, copilotStrings.onFail);
-    doChecks(fuelLevel, fuelStrings.name, fuelElement, fuelStrings.expected, fuelStrings.onSuccess, fuelStrings.onFail, fuelStrings.onOutOfBounds, ">=", threshold.fuel);
-    doChecks(cargoLevel, cargoStrings.name, cargoElement, cargoStrings.expected, cargoStrings.onSuccess, cargoStrings.onFail, cargoStrings.onOutOfBounds, "<=", threshold.cargo);
+    doChecks(pilot, pilotStrings, pilotElement);
+    doChecks(copilot, copilotStrings, copilotElement);
+    doChecks(fuelLevel, fuelStrings, fuelElement, threshold.fuel);
+    doChecks(cargoLevel, cargoStrings, cargoElement, threshold.cargo);
 
     if (allChecksPassed(list)){
         faultyItems.style.visibility = "hidden";
