@@ -20,14 +20,12 @@ window.addEventListener("load", function() {
     let listedPlanets;
     let listedPlanetsResponse = myFetch();
     listedPlanetsResponse.then(function(result) {
-        result.json().then(function(json) {
-            listedPlanets = json;
+            listedPlanets = result;
             console.log(listedPlanets);
             // Below this comment call the appropriate helper functions to pick a planet fom the list of planets and add that information to your destination.
             let destination = pickPlanet(listedPlanets);
             let {name, diameter, star, distance, moons, image} = destination;
             addDestinationInfo(document, name, diameter, star, distance, moons, image);
-        });
     });
 
 });
