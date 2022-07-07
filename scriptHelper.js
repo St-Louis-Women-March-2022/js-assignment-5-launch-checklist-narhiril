@@ -1,6 +1,4 @@
-// Write your helper functions here!
-require('isomorphic-fetch');
-
+require('isomorphic-fetch'); //needed for autograder
 
 function addDestinationInfo(document, name, diameter, star, distance, moons, imageUrl) {
 
@@ -43,38 +41,40 @@ function validateInput(testInput) {
 
 function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
 
-    const formEntries = [pilot, copilot, fuelLevel, cargoLevel];
-    for (const entry of formEntries){
-        if (validateInput(entry) === "Empty"){
-            alert("All fields are required!");
+    let alertInvalid = false;
+    let alertEmptyField = false;
+
+    for (let entry = 2; entry < arguments.length; entry++){ 
+        if (validateInput(arguments[entry]) === "Empty"){
+            alertEmptyField = true;
             break;
         }
     }
 
     class InputStrings {
-        constructor(keyName, expected, onSuccess, onFail, onOutOfBounds = '', compareType = 'none'){
-            this.keyName = keyName;
-            this.expected = expected;
+        constructor(keyName, expected, onSuccess, onFail, onOutOfBounds = ''){
+            this.keyName = keyName; //corresponding key in list object
+            this.expected = expected; //response from validateInput for a valid input
             this.onSuccess = onSuccess;
             this.onFail = onFail;
-            this.onOutOfBounds = onOutOfBounds;
-            this.compareType = compareType;
+            this.onOutOfBounds = onOutOfBounds; //for otherwise valid numeric input that fails comparison check
         }
     }
 
-    const pilotStrings = new InputStrings("pilot", "Not a Number", `${pilot} (Pilot) Ready`, "Pilot Not Ready");
-    const copilotStrings = new InputStrings("copilot", "Not a Number", `${copilot} (Co-pilot) Ready`, "Co-pilot Not Ready");
-    const fuelStrings = new InputStrings("fuelLevel", "Is a Number", "Fuel level high enough for launch", "Fuel information required for launch", "Insufficient fuel for launch", ">=");
-    const cargoStrings = new InputStrings("cargoLevel", "Is a Number", "Cargo mass low enough for launch", "Cargo information required for launch", "Cargo mass too high for launch", "<=");
-
     const threshold = {fuel: 10000, cargo: 10000};
 
-    const launchStatus = document.getElementById('launchStatus');
-    const faultyItems = document.getElementById('faultyItems');
+    const pilotStrings = new InputStrings("pilot", "Not a Number", `${pilot} (Pilot) Ready`, "Pilot Not Ready");
+    const copilotStrings = new InputStrings("copilot", "Not a Number", `${copilot} (Co-pilot) Ready`, "Co-pilot Not Ready");
+    const fuelStrings = new InputStrings("fuelLevel", "Is a Number", "Fuel level high enough for launch", "Fuel information required for launch", "Insufficient fuel for launch");
+    const cargoStrings = new InputStrings("cargoLevel", "Is a Number", "Cargo mass low enough for launch", "Cargo information required for launch", "Cargo mass too high for launch");
+
     const pilotElement = document.getElementById('pilotStatus');
     const copilotElement = document.getElementById('copilotStatus');
     const fuelElement = document.getElementById('fuelStatus');
     const cargoElement = document.getElementById('cargoStatus');
+
+    const launchStatus = document.getElementById('launchStatus');
+    const faultyItems = document.getElementById('faultyItems');
 
     function allChecksPassed(checklist){
         for (const item in checklist){
@@ -85,8 +85,8 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         return true;
     }
 
-    function doChecks(inputParam, stringObj, element, compareValue = null){
-        const {keyName, expected, onSuccess, onFail, onOutOfBounds, compareType} = stringObj;
+    function doChecks(inputParam, stringObj, element, compareType = 'invalid', compareValue = null){
+        const {keyName, expected, onSuccess, onFail, onOutOfBounds} = stringObj;
         const inputType = validateInput(inputParam);
         switch (expected){
             case "Not a Number":
@@ -95,6 +95,7 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
                     list[keyName].isReady = true;
                     element.innerHTML = onSuccess;
                 } else {
+                    alertInvalid = true;
                     list[keyName].isReady = false;
                     element.innerHTML = onFail;
                 }
@@ -107,7 +108,8 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
                     "<": (a,b) => {return a < b;},
                     "===": (a,b) => {return a === b;},
                     "!==": (a,b) => {return a !== b;},
-                    "none": () => {throw Error('formSubmission: Invalid compareType');}
+                    "none": () => {return true;},
+                    "invalid": () => {throw Error('formSubmission: Invalid compareType');}
                 }
                 if (inputType === "Is a Number"){
                     const num = parseFloat(inputParam);
@@ -120,6 +122,7 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
                         element.innerHTML = onOutOfBounds;
                     }
                 } else {
+                    alertInvalid = true;
                     list[keyName].isReady = false;
                     element.innerHTML = onFail;
                 }
@@ -131,8 +134,14 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
 
     doChecks(pilot, pilotStrings, pilotElement);
     doChecks(copilot, copilotStrings, copilotElement);
-    doChecks(fuelLevel, fuelStrings, fuelElement, threshold.fuel);
-    doChecks(cargoLevel, cargoStrings, cargoElement, threshold.cargo);
+    doChecks(fuelLevel, fuelStrings, fuelElement, '>=', threshold.fuel);
+    doChecks(cargoLevel, cargoStrings, cargoElement, '<=', threshold.cargo);
+
+    if (alertEmptyField){
+        alert("All fields are required!");
+    } else if (alertInvalid){
+        alert("One or more fields contains invalid information.");
+    }
 
     if (allChecksPassed(list)){
         faultyItems.style.visibility = "hidden";
@@ -150,13 +159,16 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
 async function myFetch() {
     let planetsReturned;
 
-    planetsReturned = await fetch().then( function(response) {
-        });
+    await fetch("https://handlers.education.launchcode.org/static/planets.json").then( function(response) {
+        planetsReturned = response;
+    });
 
     return planetsReturned;
 }
 
 function pickPlanet(planets) {
+    const roll = Math.floor(Math.random()*planets.length);
+    return planets[roll];
 }
 
 module.exports.addDestinationInfo = addDestinationInfo;
