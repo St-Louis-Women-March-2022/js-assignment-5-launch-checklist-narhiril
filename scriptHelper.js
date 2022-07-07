@@ -51,6 +51,22 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
     const fuelElement = document.getElementById('fuelStatus');
     const cargoElement = document.getElementById('cargoStatus');
 
+    class InputStrings {
+        constructor(name, expected, onSuccess, onFail, onOutOfBounds = ''){
+            this.name = name;
+            this.expected = expected;
+            this.onSuccess = onSuccess;
+            this.onFail = onFail;
+            this.onOutOfBounds = onOutOfBounds;
+        }
+    }
+
+    const pilotStrings = new InputStrings("pilot", "Not a Number", `${pilot} (Pilot) Ready`, "Pilot Not Ready");
+    const copilotStrings = new InputStrings("copilot", "Not a Number", `${copilot} (Co-pilot) Ready`, "Co-pilot Not Ready");
+    const fuelStrings = new InputStrings("fuelLevel", "Is a Number", "Fuel level high enough for launch", "Fuel information required for launch", "Insufficient fuel for launch");
+    const cargoStrings = new InputStrings("cargoLevel", "Is a Number", "Cargo mass low enough for launch", "Cargo information required for launch", "Cargo mass too high for launch");
+
+
     function allChecksPassed(checklist){
         for (const item in checklist){
             if (!checklist[item].isReady){
@@ -60,6 +76,46 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         return true;
     }
 
+    function doChecks(inputParam, paramString, element, typeExpected, onSuccess, onFail, onOutOfBounds='', compareType='>=', compareValue=null){
+        const inputType = validateInput(inputParam);
+        switch(typeExpected){
+            case "Not a Number":
+                if (inputType === "Not a Number"){
+                    list[paramString].name = inputParam;
+                    list[paramString].isReady = true;
+                    element.innerHTML = onSuccess;
+                } else {
+                    list[paramString].isReady = false;
+                    element.innerHTML = onFail;
+                }
+                break;
+            case "Is a Number":
+                const operators = {
+                    ">=": (a,b) => {return a >= b;},
+                    "<=": (a,b) => {return a <= b;},
+                    ">": (a,b) => {return a > b;},
+                    "<": (a,b) => {return a < b;},
+                    "===": (a,b) => {return a === b;},
+                    "!==": (a,b) => {return a !== b;}
+                }
+                if (inputType === "Is a Number"){
+                    const num = parseFloat(inputParam);
+                    list[paramString].value = num;
+                    if(operators[compareType](num, compareValue)){
+                        list[paramString].isReady = true;
+                        element.innerHTML = onSuccess;
+                    } else {
+                        list[paramString].isReady = false;
+                        element.innerHTML = onOutOfBounds;
+                    }
+                } else {
+                    list[paramString].isReady = false;
+                    element.innerHTML = onFail;
+                }
+                break;
+        }
+    }
+
     for (const entry of formEntries){
         if (validateInput(entry) === "Empty"){
             alert("All fields are required!");
@@ -67,53 +123,10 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         }
     }
 
-    if (validateInput(pilot) === "Not a Number"){
-        list.pilot.name = pilot;
-        list.pilot.isReady = true;
-        pilotElement.innerHTML = `${pilot} (Pilot) Ready`;
-    } else {
-        list.pilot.isReady = false;
-        pilotElement.innerHTML = "Pilot Not Ready";
-    }
-
-    if (validateInput(copilot) === "Not a Number"){
-        list.copilot.name = copilot;
-        list.copilot.isReady = true;
-        copilotElement.innerHTML = `${copilot} (Co-pilot) Ready`;
-    } else {
-        list.copilot.isReady = false;
-        copilotElement.innerHTML = "Co-pilot Not Ready";
-    }
-
-    if (validateInput(fuelLevel) === "Is a Number"){
-        fuelLevel = parseFloat(fuelLevel);
-        list.fuelLevel.value = fuelLevel;
-        if (fuelLevel >= threshold.fuel){
-            list.fuelLevel.isReady = true;
-            fuelElement.innerHTML = "Fuel level high enough for launch";
-        } else {
-            list.fuelLevel.isReady = false;
-            fuelElement.innerHTML = "Insufficient fuel for launch";
-        }
-    } else {
-        list.fuelLevel.isReady = false;
-        fuelElement.innerHTML = "Fuel information required for launch";
-    }
-    
-    if (validateInput(cargoLevel) === "Is a Number"){
-        cargoLevel = parseFloat(cargoLevel);
-        list.cargoLevel.value = cargoLevel;
-        if (cargoLevel <= threshold.cargo){
-            list.cargoLevel.isReady = true;
-            cargoElement.innerHTML = "Cargo mass low enough for launch";
-        } else {
-            list.cargoLevel.isReady = false;
-            cargoElement.innerHTML = "Cargo mass too high for launch";
-        }
-    } else {
-        list.cargoLevel.isReady = false;
-        cargoElement.innerHTML = "Cargo information required for launch";
-    }
+    doChecks(pilot, pilotStrings.name, pilotElement, pilotStrings.expected, pilotStrings.onSuccess, pilotStrings.onFail);
+    doChecks(copilot, copilotStrings.name, copilotElement, copilotStrings.expected, copilotStrings.onSuccess, copilotStrings.onFail);
+    doChecks(fuelLevel, fuelStrings.name, fuelElement, fuelStrings.expected, fuelStrings.onSuccess, fuelStrings.onFail, fuelStrings.onOutOfBounds, ">=", threshold.fuel);
+    doChecks(cargoLevel, cargoStrings.name, cargoElement, cargoStrings.expected, cargoStrings.onSuccess, cargoStrings.onFail, cargoStrings.onOutOfBounds, "<=", threshold.cargo);
 
     if (allChecksPassed(list)){
         faultyItems.style.visibility = "hidden";
@@ -124,6 +137,7 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         launchStatus.style.color = "red";
         launchStatus.innerHTML = "Shuttle not ready for launch";
     }
+    
 }
 
 
