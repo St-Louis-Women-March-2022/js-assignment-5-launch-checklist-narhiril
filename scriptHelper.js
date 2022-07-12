@@ -61,6 +61,16 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         }
     }
 
+    class CheckableObject {
+        constructor(inputParam, inputStrings, element, compareType = 'invalid', compareValue = null){
+            this.inputParam = inputParam;
+            this.inputStrings = inputStrings;
+            this.element = element;
+            this.compareType = compareType;
+            this.compareValue = compareValue;
+        }
+    }
+
     const threshold = {fuel: 10000, cargo: 10000};
 
     const pilotStrings = new InputStrings("pilot", "Not a Number", `${pilot} (Pilot) Ready`, "Pilot Not Ready");
@@ -73,6 +83,13 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
     const fuelElement = document.getElementById('fuelStatus');
     const cargoElement = document.getElementById('cargoStatus');
 
+    const checkables = [
+        new CheckableObject(pilot, pilotStrings, pilotElement),
+        new CheckableObject(copilot, copilotStrings, copilotElement),
+        new CheckableObject(fuelLevel, fuelStrings, fuelElement, '>=', threshold.fuel),
+        new CheckableObject(cargoLevel, cargoStrings, cargoElement, '<=', threshold.cargo)
+    ];
+    
     const launchStatus = document.getElementById('launchStatus');
     const faultyItems = document.getElementById('faultyItems');
 
@@ -85,8 +102,9 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
         return true;
     }
 
-    function doChecks(inputParam, stringObj, element, compareType = 'invalid', compareValue = null){
-        const {keyName, expected, onSuccess, onFail, onOutOfBounds} = stringObj;
+    function doChecks(checkableObj){
+        const {inputParam, inputStrings, element, compareType, compareValue} = checkableObj;
+        const {keyName, expected, onSuccess, onFail, onOutOfBounds} = inputStrings;
         const inputType = validateInput(inputParam);
         switch (expected){
             case "Not a Number":
@@ -127,15 +145,17 @@ function formSubmission(document, list, pilot, copilot, fuelLevel, cargoLevel) {
                     element.innerHTML = onFail;
                 }
                 break;
+            //case "Empty": //not currently used
+                //do hypothetical stuff
+                //break;
             default:
                 throw Error('formSubmission: Invalid value for stringObj.expected');
         }
     }
 
-    doChecks(pilot, pilotStrings, pilotElement);
-    doChecks(copilot, copilotStrings, copilotElement);
-    doChecks(fuelLevel, fuelStrings, fuelElement, '>=', threshold.fuel);
-    doChecks(cargoLevel, cargoStrings, cargoElement, '<=', threshold.cargo);
+    for (const item of checkables){
+        doChecks(item);
+    }
 
     if (alertEmptyField){
         alert("All fields are required!");
